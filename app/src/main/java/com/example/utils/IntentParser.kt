@@ -21,6 +21,14 @@ object IntentParser {
     private val youtubeIdRegex = "(?:youtube\\.com\\/(?:[^\\/\\n\\s]+\\/\\S+\\/|(?:v|e(?:mbed)?)\\/|\\S*?[?&]v=)|music\\.youtube\\.com\\/watch\\?v=|youtu\\.be\\/)([a-zA-Z0-9_-]{11})".toRegex()
 
     /**
+     * Extrae únicamente el ID de video de 11 caracteres de una URL.
+     */
+    fun parseVideoId(url: String): String? {
+        val matchResult = youtubeIdRegex.find(url)
+        return matchResult?.groupValues?.get(1)
+    }
+
+    /**
      * Analiza el Intent entrante. Si es un link de YouTube válido, extrae sus componentes.
      * 
      * @param intent El Intent capturado en la MainActivity
