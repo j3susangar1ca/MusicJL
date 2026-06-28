@@ -168,7 +168,7 @@ fun HistoryRowItem(song: DownloadedSong, onClick: () -> Unit) {
         verticalAlignment = Alignment.CenterVertically
     ) {
         // Renderizamos tu placeholder algorítmico premium
-        AlbumArtPlaceholder(index = calculatedArtIndex, size = 48.dp)
+        AlbumArtPlaceholder(index = calculatedArtIndex, isPlaying = false, size = 48.dp)
         
         Spacer(modifier = Modifier.width(12.dp))
         
