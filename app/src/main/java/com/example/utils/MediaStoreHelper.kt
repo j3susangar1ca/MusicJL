@@ -124,10 +124,10 @@ object MediaStoreHelper {
                 // Mapeo directo hacia tu modelo de dominio DownloadedSong
                 songsList.add(
                     DownloadedSong(
-                        id = id.toString(),
+                        id = id,
                         title = title ?: "Canción Desconocida",
                         artist = artist ?: "Artista Desconocido",
-                        localUri = contentUri
+                        uri = contentUri
                     )
                 )
             }
