@@ -10,6 +10,8 @@ import android.os.Build
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import com.example.MainActivity
+import kotlin.math.abs
+
 
 /**
  * Gestor de notificaciones nativas encargado de enviar feedback visual
@@ -120,5 +122,4 @@ class NotificationHelper(private val context: Context) {
 
         notificationManager.notify(notificationId + 1, notification)
     }
-}
 }
