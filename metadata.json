@@ -1,0 +1,6 @@
+{
+  "name": "Music JL",
+  "description": "A sleek, minimalist YouTube-to-MP3 downloader overlay designed for personal use, allowing instantaneous background share-sheet conversion.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
