@@ -47,15 +47,13 @@ object MediaStoreHelper {
         val fileUri = resolver.insert(collectionUri, audioDetails) ?: return null
 
         try {
-            // Escribir un flujo de bytes simulado (Dummy MP3 válido) para el prototipo
-            resolver.openOutputStream(fileUri).use { outputStream ->
-                if (outputStream != null) {
-                    // Escribimos una cabecera dummy minimalista para que los reproductores lo reconozcan
-                    val dummyMp3Header = byteArrayOf(0x49, 0x44, 0x33, 0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00)
-                    outputStream.write(dummyMp3Header)
-                    // Rellenar con bytes vacíos para simular peso de archivo (aprox 3MB)
-                    outputStream.write(ByteArray(1024 * 1024 * 3)) 
-                    outputStream.flush()
+            // Escribir un archivo MP3 de silencio real y válido desde los assets para que sea compatible con todos los reproductores
+            context.assets.open("silent.mp3").use { inputStream ->
+                resolver.openOutputStream(fileUri).use { outputStream ->
+                    if (outputStream != null) {
+                        inputStream.copyTo(outputStream)
+                        outputStream.flush()
+                    }
                 }
             }
 
