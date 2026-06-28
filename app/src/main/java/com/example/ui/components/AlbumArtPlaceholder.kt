@@ -1,63 +1,80 @@
 package com.example.ui.components
 
+import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
 /**
- * Renderiza una carátula de álbum simulada mediante gradientes premium algorítmicos.
- * Resuelve el diseño dinámico basado en el hash del título calculado en MetadataCleaner.
+ * Placeholder algorítmico premium adaptado para soportar animaciones 
+ * de rotación asíncronas basadas en el estado de conversión de la pista.
  */
 @Composable
 fun AlbumArtPlaceholder(
     index: Int,
-    size: Dp = 120.dp
+    isPlaying: Boolean,
+    size: Dp = 80.dp
 ) {
-    // Paleta de gradientes audiófilos (0-5) basados en tendencias de interfaces premium
-    val gradients = listOf(
-        // 0: Sunset Glow (Naranja vibrante a Rosa místico)
-        Brush.linearGradient(listOf(Color(0xFFFF5722), Color(0xFFE91E63))),
-        // 1: Deep Ocean (Azul profundo a Turquesa eléctrico)
-        Brush.linearGradient(listOf(Color(0xFF00C9FF), Color(0xFF92FE9D))),
-        // 2: Neon Midnight (Púrpura cibernético a Violeta oscuro)
-        Brush.linearGradient(listOf(Color(0xFF8A2387), Color(0xFFE94057))),
-        // 3: Emerald Forest (Verde esmeralda a Menta suave)
-        Brush.linearGradient(listOf(Color(0xFF11998e), Color(0xFF38ef7d))),
-        // 4: Electric Cyber (Amarillo neón a Magenta)
-        Brush.linearGradient(listOf(Color(0xFFF12711), Color(0xFFF5AF19))),
-        // 5: Cosmic Nebula (Índigo espacial a Orquídea)
-        Brush.linearGradient(listOf(Color(0xFF6441A5), Color(0xFF2a0845)))
+    // Animación de rotación infinita para simular el procesamiento físico del audio
+    val infiniteTransition = rememberInfiniteTransition(label = "VinylRotation")
+    val angle by infiniteTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = 360f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(5000, easing = LinearEasing),
+            repeatMode = RepeatMode.Restart
+        ),
+        label = "VinylAngle"
     )
 
-    // Escudo contra índices fuera de rango (seguridad técnica)
-    val selectedGradient = gradients.getOrElse(index) { gradients[0] }
+    // Paleta de degradados vibrantes que actúan como carátula procedimental
+    val gradients = listOf(
+        Brush.linearGradient(listOf(Color(0xFF8A2387), Color(0xFFE94057), Color(0xFFF27121))),
+        Brush.linearGradient(listOf(Color(0xFF00C6FF), Color(0xFF0072FF))),
+        Brush.linearGradient(listOf(Color(0xFF11998E), Color(0xFF38EF7D))),
+        Brush.linearGradient(listOf(Color(0xFFF12711), Color(0xFFF5AF19))),
+        Brush.linearGradient(listOf(Color(0xFF6441A5), Color(0xFF2A0845))),
+        Brush.linearGradient(listOf(Color(0xFFFE8C00), Color(0xFFF83600)))
+    )
+    val currentGradient = gradients.getOrElse(index) { gradients[0] }
+
+    // Aplicar la rotación únicamente si la máquina de estados indica que está convirtiendo
+    val dynamicModifier = if (isPlaying) Modifier.rotate(angle) else Modifier
 
     Box(
         modifier = Modifier
             .size(size)
-            .clip(RoundedCornerShape(16.dp)) // Esquinas redondeadas estilo Material 3
-            .background(selectedGradient),
+            .then(dynamicModifier)
+            .clip(CircleShape) // Forma circular de disco audiófilo premium
+            .background(currentGradient),
         contentAlignment = Alignment.Center
     ) {
-        // Ícono de nota musical minimalista y translúcido integrado con el tema
+        // Anillo interior translúcido estilo vinilo profesional
+        Box(
+            modifier = Modifier
+                .size(size * 0.35f)
+                .clip(CircleShape)
+                .background(Color.Black.copy(alpha = 0.25f))
+        )
         Icon(
-            imageVector = Icons.Filled.MusicNote,
-            contentDescription = "Music Note Placeholder",
-            modifier = Modifier.size(size * 0.45f), // Escalado proporcional al tamaño del contenedor
-            tint = Color.White.copy(alpha = 0.85f)
+            imageVector = Icons.Default.MusicNote,
+            contentDescription = null,
+            tint = Color.White.copy(alpha = 0.9f),
+            modifier = Modifier.size(size * 0.4f)
         )
     }
 }
