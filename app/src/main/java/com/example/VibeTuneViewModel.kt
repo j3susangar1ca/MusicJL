@@ -146,15 +146,34 @@ class VibeTuneViewModel : ViewModel() {
                 }
             }
 
-            // Perform metadata cleaning via the simulated Gemini backend cleaner
-            val cleanedMetadata = MetadataCleaner.cleanMetadata(rawTitle)
+            // Escribir la llamada de red a la base de datos real de Supabase
+            val videoId = com.example.utils.IntentParser.parseVideoId(trimmedUrl) ?: "coYw-M7X6M0"
+            var title = ""
+            var artist = ""
+            var albumArtIndex = 0
+
+            try {
+                val trackInfo = com.example.data.remote.SupabaseClient.apiService.getConvertedTrackInfo(
+                    videoIdFilter = "eq.$videoId",
+                    apiKey = com.example.data.remote.SupabaseClient.API_KEY
+                )
+                title = trackInfo.titleClean
+                artist = trackInfo.artist
+                albumArtIndex = Math.abs(title.hashCode() % 6)
+            } catch (e: Exception) {
+                e.printStackTrace()
+                val cleanedMetadata = MetadataCleaner.cleanMetadata(rawTitle)
+                title = cleanedMetadata.title
+                artist = cleanedMetadata.artist
+                albumArtIndex = cleanedMetadata.albumArtIndex
+            }
 
             _uiState.value = VibeUiState.MetadataReady(
                 url = trimmedUrl,
                 rawTitle = rawTitle,
-                title = cleanedMetadata.title,
-                artist = cleanedMetadata.artist,
-                albumArtIndex = cleanedMetadata.albumArtIndex
+                title = title,
+                artist = artist,
+                albumArtIndex = albumArtIndex
             )
         }
     }
