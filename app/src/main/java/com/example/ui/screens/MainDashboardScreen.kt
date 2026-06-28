@@ -145,7 +145,7 @@ fun MainDashboardScreen(viewModel: VibeTuneViewModel) {
                 ) {
                     items(historyList, key = { it.id }) { song ->
                         HistoryRowItem(song = song, onClick = {
-                            viewModel.playDownloadedSong(context, song.localUri)
+                            viewModel.playDownloadedSong(context, song.uri)
                         })
                     }
                 }
