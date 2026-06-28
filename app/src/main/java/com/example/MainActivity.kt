@@ -16,7 +16,7 @@ import androidx.compose.ui.Modifier
 import androidx.core.content.ContextCompat
 import com.example.ui.screens.MainDashboardScreen
 import com.example.ui.screens.ShareSheetOverlay
-import com.example.ui.theme.VibeTuneTheme
+import com.example.ui.theme.MyApplicationTheme
 
 class MainActivity : ComponentActivity() {
 
@@ -39,7 +39,7 @@ class MainActivity : ComponentActivity() {
         checkAndRequestNotifications() // <-- Ejecutar verificación al arrancar la app
 
         setContent {
-            VibeTuneTheme {
+            MyApplicationTheme {
                 Surface(
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
