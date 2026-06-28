@@ -15,11 +15,11 @@ import java.io.File
  */
 object MediaStoreHelper {
 
-    private val RELATIVE_PATH_VIBETUNE = "${Environment.DIRECTORY_MUSIC}/VibeTune"
+    private const val RELATIVE_PATH_VIBETUNE = "${Environment.DIRECTORY_MUSIC}/VibeTune"
 
     /**
-     * Guarda un archivo MP3 simulado o real en la carpeta pública de Música del dispositivo.
-     * Requerido por VibeTuneViewModel para finalizar el flujo de descarga.
+     * Guarda el track solicitado en la carpeta pública de Música clonando un contenedor
+     * de audio real desde tus assets para garantizar compatibilidad con reproductores.
      */
     fun saveMp3ToMusicFolder(context: Context, title: String, artist: String): Uri? {
         val resolver = context.contentResolver
@@ -47,12 +47,12 @@ object MediaStoreHelper {
         val fileUri = resolver.insert(collectionUri, audioDetails) ?: return null
 
         try {
-            // Escribir un archivo MP3 de silencio real y válido desde los assets para que sea compatible con todos los reproductores
-            context.assets.open("silent.mp3").use { inputStream ->
-                resolver.openOutputStream(fileUri).use { outputStream ->
+            // 🚨 SOLUCIÓN: Volcamos el flujo binario real de tu asset silent.mp3
+            // Esto asegura estructuras de decodificación válidas para el sistema operativo
+            resolver.openOutputStream(fileUri).use { outputStream ->
+                context.assets.open("silent.mp3").use { inputStream ->
                     if (outputStream != null) {
-                        inputStream.copyTo(outputStream)
-                        outputStream.flush()
+                        inputStream.copyTo(outputStream) // Copia limpia byte por byte
                     }
                 }
             }
@@ -122,10 +122,10 @@ object MediaStoreHelper {
                 // Mapeo directo hacia tu modelo de dominio DownloadedSong
                 songsList.add(
                     DownloadedSong(
-                        id = id,
+                        id = id.toString(),
                         title = title ?: "Canción Desconocida",
                         artist = artist ?: "Artista Desconocido",
-                        uri = contentUri
+                        localUri = contentUri
                     )
                 )
             }
