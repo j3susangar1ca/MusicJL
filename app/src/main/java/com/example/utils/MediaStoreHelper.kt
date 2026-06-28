@@ -15,7 +15,7 @@ import java.io.File
  */
 object MediaStoreHelper {
 
-    private const val RELATIVE_PATH_VIBETUNE = "${Environment.DIRECTORY_MUSIC}/VibeTune"
+    private val RELATIVE_PATH_VIBETUNE = "${Environment.DIRECTORY_MUSIC}/VibeTune"
 
     /**
      * Guarda un archivo MP3 simulado o real en la carpeta pública de Música del dispositivo.
@@ -124,10 +124,10 @@ object MediaStoreHelper {
                 // Mapeo directo hacia tu modelo de dominio DownloadedSong
                 songsList.add(
                     DownloadedSong(
-                        id = id.toString(),
+                        id = id,
                         title = title ?: "Canción Desconocida",
                         artist = artist ?: "Artista Desconocido",
-                        localUri = contentUri
+                        uri = contentUri
                     )
                 )
             }
