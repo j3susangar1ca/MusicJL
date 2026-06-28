@@ -141,7 +141,7 @@ fun MainDashboardScreen(viewModel: VibeTuneViewModel) {
             } else {
                 LazyColumn(
                     verticalArrangement = Arrangement.spacedBy(8.dp),
-                    modifier = Modifier.fill someMaxWidth().weight(1f)
+                    modifier = Modifier.fillMaxWidth().weight(1f)
                 ) {
                     items(historyList, key = { it.id }) { song ->
                         HistoryRowItem(song = song, onClick = {

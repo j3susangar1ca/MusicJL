@@ -1,50 +1,18 @@
-package com.example.data.remote
+package com.example.domain.models
 
-import com.example.domain.models.TrackInfo
-import okhttp3.OkHttpClient
-import okhttp3.logging.HttpLoggingInterceptor
-import retrofit2.Retrofit
-import retrofit2.converter.moshi.MoshiConverterFactory
-import retrofit2.http.GET
-import retrofit2.http.Query
-import java.util.concurrent.TimeUnit
+import com.squareup.moshi.Json
+import com.squareup.moshi.JsonClass
 
 /**
- * Interfaz que define los endpoints de comunicación con el pipeline de extracción.
+ * Representa los metadatos puros de una canción devueltos por la API de conversión.
  */
-interface VibeTuneApiService {
-    @GET("rest/v1/audio-extractor")
-    suspend fun getConvertedTrackInfo(
-        @Query("video_id") videoId: String,
-        @Query("apikey") apiKey: String
-    ): TrackInfo
-}
-
-/**
- * Cliente Remoto Singleton configurado bajo la infraestructura robusta declarada en Gradle.
- */
-object SupabaseClient {
-
-    // Nota técnica: En producción estos valores se inyectan automáticamente desde tu plugin de Secrets (.env)
-    private const val BASE_URL = "https://placeholder-supabase-url.supabase.co/"
-    
-    private val loggingInterceptor = HttpLoggingInterceptor().apply {
-        level = HttpLoggingInterceptor.Level.BODY
-    }
-
-    private val okHttpClient = OkHttpClient.Builder()
-        .addInterceptor(loggingInterceptor)
-        .connectTimeout(30, TimeUnit.SECONDS) // Tiempos amplios para dar margen al handshake asíncrono
-        .readTimeout(30, TimeUnit.SECONDS)
-        .build()
-
-    private val retrofit: Retrofit = Retrofit.Builder()
-        .baseUrl(BASE_URL)
-        .client(okHttpClient)
-        .addConverterFactory(MoshiConverterFactory.create()) // Conversión directa a tus data classes con KSP
-        .build()
-
-    val apiService: VibeTuneApiService by lazy {
-        retrofit.create(VibeTuneApiService::class.java)
-    }
-}
+@JsonClass(generateAdapter = true)
+data class TrackInfo(
+    @Json(name = "video_id") val videoId: String,
+    @Json(name = "title_clean") val titleClean: String,
+    val artist: String,
+    val album: String?,
+    @Json(name = "cover_art_url") val coverArtUrl: String?,
+    val bpm: Int?,
+    @Json(name = "camelot_key") val camelotKey: String?
+)
