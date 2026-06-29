@@ -49,6 +49,14 @@
             </intent-filter>
             
         </activity>
+
+        <receiver
+            android:name=".worker.CancelDownloadReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.example.ACTION_CANCEL_DOWNLOAD" />
+            </intent-filter>
+        </receiver>
     </application>
 
 </manifest>

@@ -38,6 +38,9 @@ class DownloadWorker(
             val progressSteps = listOf(12, 28, 45, 61, 79, 93, 100)
             
             for (progress in progressSteps) {
+                if (isStopped) {
+                    return Result.failure()
+                }
                 delay(400) // Tiempo de procesamiento realista en servidor asíncrono
                 
                 // Actualizar el progreso físico en la Rich Notification del sistema

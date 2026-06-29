@@ -114,37 +114,7 @@ class VibeTuneViewModel : ViewModel() {
             }
 
             // Extract a title from our database, or infer from URL query parameter, or assign a beautiful default
-            var rawTitle = "Lady Gaga, Bruno Mars - Die With A Smile (Official Music Video)" // Gorgeous default
-            
-            // Try to match mock database keys
-            for ((key, title) in mockYoutubeDatabase) {
-                if (trimmedUrl.contains(key, ignoreCase = true)) {
-                    rawTitle = title
-                    break
-                }
-            }
-
-            // If not found in mock database but URL contains custom text hints
-            if (rawTitle == mockYoutubeDatabase.values.first() && !trimmedUrl.contains("coYw-M7X6M0")) {
-                if (trimmedUrl.contains("espresso", ignoreCase = true)) {
-                    rawTitle = mockYoutubeDatabase["d_HlPboLRL8"]!!
-                } else if (trimmedUrl.contains("feather", ignoreCase = true) || trimmedUrl.contains("billie", ignoreCase = true)) {
-                    rawTitle = mockYoutubeDatabase["2Tz8N0_3g9Y"]!!
-                } else if (trimmedUrl.contains("flowers", ignoreCase = true) || trimmedUrl.contains("miley", ignoreCase = true)) {
-                    rawTitle = mockYoutubeDatabase["Flowers"]!!
-                } else if (trimmedUrl.contains("starboy", ignoreCase = true) || trimmedUrl.contains("weeknd", ignoreCase = true)) {
-                    rawTitle = mockYoutubeDatabase["Starboy"]!!
-                } else {
-                    // Procedural generation based on url string to make it fun
-                    val lengthValue = trimmedUrl.length % 4
-                    rawTitle = when (lengthValue) {
-                        0 -> "Chappell Roan - Pink Pony Club [Official Lyric Video]"
-                        1 -> "Post Malone, Morgan Wallen - I Had Some Help (Official Video)"
-                        2 -> "Kendrick Lamar - Not Like Us [Official Audio]"
-                        else -> "Music JL Synth Beats - Sesión Lofi de Medianoche (1080p HD)"
-                    }
-                }
-            }
+            val rawTitle = resolveRawTitle(trimmedUrl)
 
             // Escribir la llamada de red a la base de datos real de Supabase
             val videoId = com.example.utils.IntentParser.parseVideoId(trimmedUrl) ?: "coYw-M7X6M0"
@@ -223,6 +193,26 @@ class VibeTuneViewModel : ViewModel() {
         } catch (e: Exception) {
             // Fallback error if no player is found or media intent fails
             e.printStackTrace()
+        }
+    }
+
+    private fun resolveRawTitle(url: String): String {
+        for ((key, title) in mockYoutubeDatabase) {
+            if (url.contains(key, ignoreCase = true)) {
+                return title
+            }
+        }
+        if (url.contains("espresso", ignoreCase = true)) return mockYoutubeDatabase["d_HlPboLRL8"]!!
+        if (url.contains("feather", ignoreCase = true) || url.contains("billie", ignoreCase = true)) return mockYoutubeDatabase["2Tz8N0_3g9Y"]!!
+        if (url.contains("flowers", ignoreCase = true) || url.contains("miley", ignoreCase = true)) return mockYoutubeDatabase["Flowers"]!!
+        if (url.contains("starboy", ignoreCase = true) || url.contains("weeknd", ignoreCase = true)) return mockYoutubeDatabase["Starboy"]!!
+        
+        val lengthValue = url.length % 4
+        return when (lengthValue) {
+            0 -> "Chappell Roan - Pink Pony Club [Official Lyric Video]"
+            1 -> "Post Malone, Morgan Wallen - I Had Some Help (Official Video)"
+            2 -> "Kendrick Lamar - Not Like Us [Official Audio]"
+            else -> "Music JL Synth Beats - Sesión Lofi de Medianoche (1080p HD)"
         }
     }
 }

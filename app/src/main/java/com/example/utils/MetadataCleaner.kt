@@ -65,48 +65,37 @@ object MetadataCleaner {
         return SongMetadata(title, artist, albumArtIndex)
     }
     
+    private val garbagePatterns = listOf(
+        Regex("[\\[\\(]?Official\\s+(Music\\s+)?(Video|Audio)[\\]\\)]?", RegexOption.IGNORE_CASE),
+        Regex("[\\[\\(]?Official\\s+Visualizer[\\]\\)]?", RegexOption.IGNORE_CASE),
+        Regex("[\\[\\(]?Official\\s+Lyric\\s+Video[\\]\\)]?", RegexOption.IGNORE_CASE),
+        Regex("[\\[\\(]?Lyrics?[\\]\\)]?", RegexOption.IGNORE_CASE),
+        Regex("[\\[\\(]?Audio[\\]\\)]?", RegexOption.IGNORE_CASE),
+        Regex("[\\[\\(]?(HD|1080p|4K|HQ)[\\]\\)]?", RegexOption.IGNORE_CASE),
+        Regex("[\\[\\(]?Remastered[\\]\\)]?", RegexOption.IGNORE_CASE),
+        Regex("\\(\\s*\\)"),
+        Regex("\\[\\s*\\]")
+    )
+
     /**
      * Strips brackets, video definitions, lyrics tags and parentheticals.
      */
     private fun cleanGarbage(text: String): String {
         var result = text
-        val garbagePatterns = listOf(
-            Regex("\\(?Official\\s+(Music\\s+)?Video\\)?", RegexOption.IGNORE_CASE),
-            Regex("\\(?Official\\s+(Music\\s+)?Audio\\)?", RegexOption.IGNORE_CASE),
-            Regex("\\(?Official\\s+Visualizer\\)?", RegexOption.IGNORE_CASE),
-            Regex("\\(?Official\\s+Lyric\\s+Video\\)?", RegexOption.IGNORE_CASE),
-            Regex("\\[?Official\\s+(Music\\s+)?Video\\]?", RegexOption.IGNORE_CASE),
-            Regex("\\[?Official\\s+(Music\\s+)?Audio\\]?", RegexOption.IGNORE_CASE),
-            Regex("\\[?Official\\s+Visualizer\\]?", RegexOption.IGNORE_CASE),
-            Regex("\\[?Official\\s+Lyric\\s+Video\\]?", RegexOption.IGNORE_CASE),
-            Regex("\\(?Lyrics?\\)?", RegexOption.IGNORE_CASE),
-            Regex("\\[?Lyrics?\\]?", RegexOption.IGNORE_CASE),
-            Regex("\\(?Audio\\)?", RegexOption.IGNORE_CASE),
-            Regex("\\[?Audio\\]?", RegexOption.IGNORE_CASE),
-            Regex("\\[?HD\\]?", RegexOption.IGNORE_CASE),
-            Regex("\\[?1080p\\]?", RegexOption.IGNORE_CASE),
-            Regex("\\[?4K\\]?", RegexOption.IGNORE_CASE),
-            Regex("\\(?HQ\\)?", RegexOption.IGNORE_CASE),
-            Regex("\\[?HQ\\]?", RegexOption.IGNORE_CASE),
-            Regex("\\(Official\\)", RegexOption.IGNORE_CASE),
-            Regex("\\[Official\\]", RegexOption.IGNORE_CASE),
-            Regex("\\(Remastered\\)", RegexOption.IGNORE_CASE),
-            Regex("\\[Remastered\\]", RegexOption.IGNORE_CASE)
-        )
         for (pattern in garbagePatterns) {
             result = result.replace(pattern, "")
         }
         
         // Strip other residual tags or noise symbols
-        result = result
-            .replace(Regex("\\(\\s*\\)"), "")
-            .replace(Regex("\\[\\s*\\]"), "")
-            .trim()
+        result = result.trim()
             
         // Strip trailing or leading dashes or pipes
-        while (result.startsWith("-") || result.startsWith("|") || result.endsWith("-") || result.endsWith("|")) {
-            result = result.removeSurrounding("-").removeSurrounding("|").trim()
-        }
+        var previous: String
+        do {
+            previous = result
+            result = result.removePrefix("-").removePrefix("|").removeSuffix("-").removeSuffix("|").trim()
+        } while (result != previous)
+        
         return result
     }
 

@@ -49,11 +49,9 @@ object MediaStoreHelper {
         try {
             // 🚨 SOLUCIÓN: Volcamos el flujo binario real de tu asset silent.mp3
             // Esto asegura estructuras de decodificación válidas para el sistema operativo
-            resolver.openOutputStream(fileUri).use { outputStream ->
+            resolver.openOutputStream(fileUri)?.use { outputStream ->
                 context.assets.open("silent.mp3").use { inputStream ->
-                    if (outputStream != null) {
-                        inputStream.copyTo(outputStream) // Copia limpia byte por byte
-                    }
+                    inputStream.copyTo(outputStream) // Copia limpia byte por byte
                 }
             }
 

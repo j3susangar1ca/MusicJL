@@ -18,7 +18,7 @@ data class ParsedYoutubeInfo(
 object IntentParser {
 
     // Expresión regular robusta para capturar el ID de video de YouTube (soporta youtube.com, youtu.be, music.youtube, etc.)
-    private val youtubeIdRegex = "(?:youtube\\.com\\/(?:[^\\/\\n\\s]+\\/\\S+\\/|(?:v|e(?:mbed)?)\\/|\\S*?[?&]v=)|music\\.youtube\\.com\\/watch\\?v=|youtu\\.be\\/)([a-zA-Z0-9_-]{11})".toRegex()
+    private val youtubeIdRegex = "(?:youtube\\.com\\/(?:[^\\/\\n\\s]+\\/\\S+\\/|(?:v|e(?:mbed)?|shorts)\\/|\\S*?[?&]v=)|music\\.youtube\\.com\\/watch\\?v=|youtu\\.be\\/)([a-zA-Z0-9_-]{11})".toRegex()
 
     /**
      * Extrae únicamente el ID de video de 11 caracteres de una URL.

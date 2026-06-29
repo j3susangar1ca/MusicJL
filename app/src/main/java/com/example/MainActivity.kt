@@ -5,6 +5,7 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
+import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
@@ -28,7 +29,7 @@ class MainActivity : ComponentActivity() {
     ) { isGranted ->
         if (!isGranted) {
             // Requerido por las políticas FOSS: feedback sutil si el usuario rechaza
-            println("VibeTune: El usuario rechazó las notificaciones. No se verá el progreso en la barra de tareas.")
+            Log.w("VibeTune", "El usuario rechazó las notificaciones. No se verá el progreso en la barra de tareas.")
         }
     }
 

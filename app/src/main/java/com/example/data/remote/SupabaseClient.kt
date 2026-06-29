@@ -1,5 +1,6 @@
 package com.example.data.remote
 
+import com.example.BuildConfig
 import com.example.domain.models.TrackInfo
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
@@ -29,10 +30,10 @@ object SupabaseClient {
 
     private const val BASE_URL = "https://zsisrdvqkdcmolqshius.supabase.co/"
     
-    const val API_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpzaXNyZHZxa2RjbW9scXNoaXVzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI2NjI0MzIsImV4cCI6MjA5ODIzODQzMn0.hH1SCr9Ymk201AGe49aTpSaGX4Lx2dK9JwlwzkLiniE"
+    const val API_KEY = BuildConfig.SUPABASE_API_KEY
 
     private val loggingInterceptor = HttpLoggingInterceptor().apply {
-        level = HttpLoggingInterceptor.Level.BODY
+        level = if (BuildConfig.DEBUG) HttpLoggingInterceptor.Level.BODY else HttpLoggingInterceptor.Level.NONE
     }
 
     private val okHttpClient = OkHttpClient.Builder()

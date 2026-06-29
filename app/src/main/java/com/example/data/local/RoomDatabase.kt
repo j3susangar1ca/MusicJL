@@ -4,6 +4,8 @@ import android.content.Context
 import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
+import androidx.room.migration.Migration
+import androidx.sqlite.db.SupportSQLiteDatabase
 import com.example.data.local.entity.DownloadEntity
 
 /**
@@ -21,6 +23,12 @@ abstract class VibeTuneDatabase : RoomDatabase() {
     abstract fun downloadDao(): DownloadDao
 
     companion object {
+        val MIGRATION_1_2 = object : Migration(1, 2) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                // Agregar aquí las sentencias SQL de migración cuando se actualice la versión
+            }
+        }
+
         @Volatile
         private var INSTANCE: VibeTuneDatabase? = null
 
@@ -39,7 +47,7 @@ abstract class VibeTuneDatabase : RoomDatabase() {
                  * Para activar el cifrado con SQLCipher platicado en el informe,
                  * se encadena aquí: .openHelperFactory(SupportFactory(passphrase))
                  */
-                .fallbackToDestructiveMigration() // Limpia y reconstruye si hay cambios de versión en desarrollo
+                .addMigrations(MIGRATION_1_2) // Reemplazado fallbackToDestructiveMigration para evitar pérdida de datos en prod
                 .build()
                 INSTANCE = instance
                 instance

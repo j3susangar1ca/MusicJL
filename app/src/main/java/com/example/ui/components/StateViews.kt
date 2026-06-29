@@ -25,6 +25,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.Button
@@ -202,7 +203,7 @@ fun MetadataReadyView(
                         .padding(horizontal = 8.dp, vertical = 2.dp)
                 ) {
                     Text(
-                        text = "METADATOS LIMOPOS", // Preserved label from layout
+                        text = "METADATOS LIMPIOS", // Preserved label from layout
                         color = FrostLavender,
                         fontSize = 9.sp,
                         fontWeight = FontWeight.Bold
@@ -450,7 +451,7 @@ fun CompletedStateView(
                 border = BorderStroke(1.dp, FrostLavender.copy(alpha = 0.5f))
             ) {
                 Icon(
-                    imageVector = Icons.Default.Share, // Replaced play arrow with standard icon if needed or let it compile
+                    imageVector = Icons.Default.PlayArrow, // Replaced play arrow with standard icon if needed or let it compile
                     contentDescription = "Reproducir pista ahora",
                     tint = FrostLavender,
                     modifier = Modifier.size(18.dp)
