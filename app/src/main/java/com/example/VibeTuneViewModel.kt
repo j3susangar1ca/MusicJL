@@ -59,7 +59,7 @@ class VibeTuneViewModel : ViewModel() {
         viewModelScope.launch {
             _uiState.value = VibeUiState.Capturing
             try {
-                val responseList = SupabaseClient.apiService.getConvertedTrackInfo(videoId = videoId)
+                val responseList = SupabaseClient.apiService.getConvertedTrackInfo(videoId = "eq.$videoId")
                 
                 if (responseList.isNotEmpty()) {
                     val track = responseList.first()
