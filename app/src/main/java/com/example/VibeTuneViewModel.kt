@@ -1,48 +1,21 @@
 package com.example
 
 import android.content.Context
-import android.content.Intent
-import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.domain.models.DownloadedSong
-import com.example.utils.MediaStoreHelper
+import androidx.work.ExistingWorkPolicy
+import androidx.work.OneTimeWorkRequestBuilder
+import androidx.work.WorkManager
+import androidx.work.workDataOf
+import com.example.data.remote.SupabaseClient
+import com.example.ui.screens.VibeUiState
+import com.example.utils.IntentParser
 import com.example.utils.MetadataCleaner
-import kotlinx.coroutines.delay
+import com.example.worker.DownloadWorker
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
-
-// Screen states for the VibeTune UI
-sealed interface VibeUiState {
-    object Idle : VibeUiState
-    object Capturing : VibeUiState
-    
-    data class MetadataReady(
-        val url: String,
-        val rawTitle: String,
-        val title: String,
-        val artist: String,
-        val albumArtIndex: Int
-    ) : VibeUiState
-    
-    data class Converting(
-        val title: String,
-        val artist: String,
-        val progress: Int,
-        val albumArtIndex: Int
-    ) : VibeUiState
-    
-    data class Completed(
-        val title: String,
-        val artist: String,
-        val fileUri: Uri,
-        val albumArtIndex: Int
-    ) : VibeUiState
-    
-    data class Error(val message: String) : VibeUiState
-}
 
 class VibeTuneViewModel : ViewModel() {
 
@@ -52,167 +25,86 @@ class VibeTuneViewModel : ViewModel() {
     private val _pastedUrl = MutableStateFlow("")
     val pastedUrl: StateFlow<String> = _pastedUrl.asStateFlow()
 
-    private val _historyList = MutableStateFlow<List<DownloadedSong>>(emptyList())
-    val historyList: StateFlow<List<DownloadedSong>> = _historyList.asStateFlow()
-
-    // Mock database mapping YouTube video IDs to raw titles
-    private val mockYoutubeDatabase = mapOf(
-        "coYw-M7X6M0" to "Lady Gaga, Bruno Mars - Die With A Smile (Official Music Video)",
-        "d_HlPboLRL8" to "Sabrina Carpenter - Espresso [HD Official Audio]",
-        "2Tz8N0_3g9Y" to "Billie Eilish - BIRDS OF A FEATHER (Lyrics)",
-        "PinkPony" to "Chappell Roan - Pink Pony Club [Official Lyric Video]",
-        "Flowers" to "Miley Cyrus - Flowers (Official Video)",
-        "Starboy" to "The Weeknd ft. Daft Punk - Starboy [HQ 1080p]"
-    )
-
     fun updatePastedUrl(url: String) {
         _pastedUrl.value = url
     }
 
     /**
-     * Resets the download status back to Idle (for main screen dashboard).
-     */
-    fun resetState() {
-        _uiState.value = VibeUiState.Idle
-    }
-
-    /**
-     * Queries saved files from MediaStore to populate dashboard list.
-     */
-    fun refreshHistory(context: Context) {
-        viewModelScope.launch {
-            val songs = MediaStoreHelper.getDownloadedVibeTuneSongs(context)
-            _historyList.value = songs
-        }
-    }
-
-    /**
-     * Main handler that processes incoming links, whether shared from YouTube Music
-     * or manually pasted in the dashboard.
+     * Intercepta el enlace, consulta Supabase en tiempo real y parsea la respuesta.
      */
     fun processUrl(context: Context, url: String) {
         val trimmedUrl = url.trim()
-        if (trimmedUrl.isEmpty()) {
-            _uiState.value = VibeUiState.Error("Por favor, introduce un enlace de YouTube válido.")
+        if (trimmedUrl.isEmpty()) return
+
+        // Extraer el identificador nativo de YouTube usando tu Utilitario
+        val videoId = IntentParser.extractVideoId(trimmedUrl)
+        if (videoId.isNullOrEmpty()) {
+            _uiState.value = VibeUiState.Error("La URL proporcionada no es un enlace válido de YouTube.")
             return
         }
 
         viewModelScope.launch {
-            _uiState.value = VibeUiState.Capturing
-            // Feel-good pulsing animation sleep (1200ms)
-            delay(1200)
-
-            // Validate if it is a plausible YouTube or general link
-            val isYoutube = trimmedUrl.contains("youtube.com", ignoreCase = true) || 
-                            trimmedUrl.contains("youtu.be", ignoreCase = true) ||
-                            trimmedUrl.contains("http://", ignoreCase = true) ||
-                            trimmedUrl.contains("https://", ignoreCase = true)
-
-            if (!isYoutube) {
-                _uiState.value = VibeUiState.Error("Fuente de audio no válida. Por favor, comparte un enlace válido de YouTube o YouTube Music.")
-                return@launch
-            }
-
-            // Extract a title from our database, or infer from URL query parameter, or assign a beautiful default
-            val rawTitle = resolveRawTitle(trimmedUrl)
-
-            // Escribir la llamada de red a la base de datos real de Supabase
-            val videoId = com.example.utils.IntentParser.parseVideoId(trimmedUrl) ?: "coYw-M7X6M0"
-            var title = ""
-            var artist = ""
-            var albumArtIndex = 0
-
+            _uiState.value = VibeUiState.Capturing // Despierta tu CapturingStateView frosted premium
             try {
-                val trackInfo = com.example.data.remote.SupabaseClient.apiService.getConvertedTrackInfo(
-                    videoIdFilter = "eq.$videoId",
-                    apiKey = com.example.data.remote.SupabaseClient.API_KEY
-                )
-                title = trackInfo.titleClean
-                artist = trackInfo.artist
-                albumArtIndex = Math.abs(title.hashCode() % 6)
+                // Petición HTTP directa a tu base de datos Cloud
+                val responseList = SupabaseClient.apiService.getConvertedTrackInfo(videoId = videoId)
+                
+                if (responseList.isNotEmpty()) {
+                    val track = responseList.first()
+                    
+                    // Ejecuta tu limpiador algorítmico determinista
+                    val cleaned = MetadataCleaner.cleanMetadata(track.title)
+
+                    // Cambia al estado de Confirmación con datos reales del backend
+                    _uiState.value = VibeUiState.MetadataReady(
+                        url = trimmedUrl,
+                        rawTitle = track.title,
+                        title = cleaned.title,
+                        artist = track.artist.ifBlank { cleaned.artist },
+                        albumArtIndex = cleaned.albumArtIndex,
+                        streamUrl = track.downloadUrl // Pasamos el stream HTTP real al estado
+                    )
+                } else {
+                    _uiState.value = VibeUiState.Error("El video aún no ha sido procesado por el servidor de Music JL.")
+                }
             } catch (e: Exception) {
                 e.printStackTrace()
-                val cleanedMetadata = MetadataCleaner.cleanMetadata(rawTitle)
-                title = cleanedMetadata.title
-                artist = cleanedMetadata.artist
-                albumArtIndex = cleanedMetadata.albumArtIndex
-            }
-
-            _uiState.value = VibeUiState.MetadataReady(
-                url = trimmedUrl,
-                rawTitle = rawTitle,
-                title = title,
-                artist = artist,
-                albumArtIndex = albumArtIndex
-            )
-        }
-    }
-
-    /**
-     * Starts the simulated YouTube-to-MP3 extraction and conversion,
-     * updating progress sequentially, saving the file, and refreshing history.
-     */
-    fun startDownloadAndConversion(context: Context, title: String, artist: String, albumArtIndex: Int) {
-        val currentState = _uiState.value
-        if (currentState !is VibeUiState.MetadataReady) return
-
-        viewModelScope.launch {
-            _uiState.value = VibeUiState.Converting(title, artist, 0, albumArtIndex)
-
-            // Progressive conversion feedback
-            val progressSteps = listOf(12, 28, 45, 61, 79, 93, 100)
-            for (progress in progressSteps) {
-                delay(350) // Sleek conversions need a small moment of realism
-                _uiState.value = VibeUiState.Converting(title, artist, progress, albumArtIndex)
-            }
-
-            // Save the dummy `.mp3` file to Shared Music/VibeTune folder
-            val savedUri = MediaStoreHelper.saveMp3ToMusicFolder(context, title, artist)
-
-            if (savedUri != null) {
-                _uiState.value = VibeUiState.Completed(title, artist, savedUri, albumArtIndex)
-                // Refresh our history database immediately
-                refreshHistory(context)
-            } else {
-                _uiState.value = VibeUiState.Error("No se pudo registrar el archivo MP3 en la biblioteca de medios del sistema.")
+                _uiState.value = VibeUiState.Error("Fallo de conexión: ${e.localizedMessage ?: "Error desconocido en Supabase"}")
             }
         }
     }
 
     /**
-     * Triggers a system view action intent to play the downloaded music track in the default player.
+     * Transfiere el trabajo pesado a la capa del sistema operativo mediante WorkManager.
+     * Inmune a cierres de la aplicación.
      */
-    fun playDownloadedSong(context: Context, fileUri: Uri) {
-        try {
-            val playIntent = Intent(Intent.ACTION_VIEW).apply {
-                setDataAndType(fileUri, "audio/*")
-                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-            }
-            context.startActivity(playIntent)
-        } catch (e: Exception) {
-            // Fallback error if no player is found or media intent fails
-            e.printStackTrace()
-        }
-    }
-
-    private fun resolveRawTitle(url: String): String {
-        for ((key, title) in mockYoutubeDatabase) {
-            if (url.contains(key, ignoreCase = true)) {
-                return title
-            }
-        }
-        if (url.contains("espresso", ignoreCase = true)) return mockYoutubeDatabase["d_HlPboLRL8"]!!
-        if (url.contains("feather", ignoreCase = true) || url.contains("billie", ignoreCase = true)) return mockYoutubeDatabase["2Tz8N0_3g9Y"]!!
-        if (url.contains("flowers", ignoreCase = true) || url.contains("miley", ignoreCase = true)) return mockYoutubeDatabase["Flowers"]!!
-        if (url.contains("starboy", ignoreCase = true) || url.contains("weeknd", ignoreCase = true)) return mockYoutubeDatabase["Starboy"]!!
+    fun startDownloadAndConversion(context: Context, title: String, artist: String, streamUrl: String) {
+        val videoId = IntentParser.extractVideoId(_pastedUrl.value) ?: "unknown_id"
         
-        val lengthValue = url.length % 4
-        return when (lengthValue) {
-            0 -> "Chappell Roan - Pink Pony Club [Official Lyric Video]"
-            1 -> "Post Malone, Morgan Wallen - I Had Some Help (Official Video)"
-            2 -> "Kendrick Lamar - Not Like Us [Official Audio]"
-            else -> "Music JL Synth Beats - Sesión Lofi de Medianoche (1080p HD)"
-        }
+        // Empaquetar los metadatos reales para el hilo de fondo
+        val inputData = workDataOf(
+            "VIDEO_ID" to videoId,
+            "TITLE" to title,
+            "ARTIST" to artist,
+            "STREAM_URL" to streamUrl
+        )
+
+        val downloadRequest = OneTimeWorkRequestBuilder<DownloadWorker>()
+            .setInputData(inputData)
+            .build()
+
+        // Encolar de manera única para evitar descargas duplicadas de la misma canción
+        WorkManager.getInstance(context).enqueueUniqueWork(
+            "download_$videoId",
+            ExistingWorkPolicy.KEEP,
+            downloadRequest
+        )
+
+        // Sincronizar el estado de la UI directamente a completado tras delegar al worker
+        _uiState.value = VibeUiState.Completed
+    }
+
+    fun resetState() {
+        _uiState.value = VibeUiState.Idle
     }
 }

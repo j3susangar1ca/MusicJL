@@ -23,10 +23,12 @@ object IntentParser {
     /**
      * Extrae únicamente el ID de video de 11 caracteres de una URL.
      */
-    fun parseVideoId(url: String): String? {
+    fun extractVideoId(url: String): String? {
         val matchResult = youtubeIdRegex.find(url)
         return matchResult?.groupValues?.get(1)
     }
+
+    fun parseVideoId(url: String): String? = extractVideoId(url)
 
     /**
      * Analiza el Intent entrante. Si es un link de YouTube válido, extrae sus componentes.
