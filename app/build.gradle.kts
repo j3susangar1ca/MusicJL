@@ -116,7 +116,7 @@ dependencies {
   implementation(libs.okhttp)
   // implementation(libs.play.services.location)
   implementation(libs.retrofit)
-  implementation("com.arthenica:ffmpeg-kit-min:6.0")
+  implementation("com.arthenica:ffmpeg-kit-full:5.1")
   testImplementation(libs.androidx.compose.ui.test.junit4)
   testImplementation(libs.androidx.core)
   testImplementation(libs.androidx.junit)
