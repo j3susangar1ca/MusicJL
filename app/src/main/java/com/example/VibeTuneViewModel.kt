@@ -59,6 +59,7 @@ class VibeTuneViewModel : ViewModel() {
         viewModelScope.launch {
             _uiState.value = VibeUiState.Capturing
             try {
+                // Consultar Supabase con el filtro correcto eq.
                 val responseList = SupabaseClient.apiService.getConvertedTrackInfo(videoId = "eq.$videoId")
                 
                 if (responseList.isNotEmpty()) {
@@ -74,7 +75,19 @@ class VibeTuneViewModel : ViewModel() {
                         streamUrl = track.downloadUrl
                     )
                 } else {
-                    _uiState.value = VibeUiState.Error("El video aún no ha sido procesado por el servidor de Music JL.")
+                    // FALLBACK: El video no está en la base de datos de Supabase aún.
+                    // Usamos el limpiador local para generar metadatos a partir del ID o una cadena genérica.
+                    val fallbackTitle = "YouTube Track $videoId"
+                    val cleaned = MetadataCleaner.cleanMetadata(fallbackTitle)
+                    
+                    _uiState.value = VibeUiState.MetadataReady(
+                        url = trimmedUrl,
+                        rawTitle = fallbackTitle,
+                        title = cleaned.title,
+                        artist = cleaned.artist,
+                        albumArtIndex = cleaned.albumArtIndex,
+                        streamUrl = "" // No hay URL de descarga directa si no está en la DB
+                    )
                 }
             } catch (e: Exception) {
                 e.printStackTrace()
@@ -87,6 +100,11 @@ class VibeTuneViewModel : ViewModel() {
      * Transfiere el trabajo pesado a la capa del sistema operativo mediante WorkManager.
      */
     fun startDownloadAndConversion(context: Context, title: String, artist: String, albumArtIndex: Int, streamUrl: String) {
+        if (streamUrl.isEmpty()) {
+            _uiState.value = VibeUiState.Error("Este video aún no ha sido procesado por el servidor y no tiene enlace de descarga.")
+            return
+        }
+
         val videoId = IntentParser.extractVideoId(_pastedUrl.value) ?: "unknown_id"
         
         val inputData = workDataOf(
@@ -106,9 +124,6 @@ class VibeTuneViewModel : ViewModel() {
             downloadRequest
         )
 
-        // For now, we jump to Completed to satisfy the UI, but in a real app 
-        // you would observe the WorkInfo to update progress/state.
-        // We use a dummy URI for now since the worker is doing the actual saving.
         _uiState.value = VibeUiState.Completed(title, artist, Uri.EMPTY, albumArtIndex)
     }
 
