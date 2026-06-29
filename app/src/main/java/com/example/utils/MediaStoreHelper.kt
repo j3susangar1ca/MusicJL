@@ -8,6 +8,7 @@ import android.os.Environment
 import android.provider.MediaStore
 import com.example.domain.models.DownloadedSong
 import java.io.File
+import java.io.FileInputStream
 
 /**
  * Utilidad de bajo nivel encargada de interactuar con la biblioteca de medios 
@@ -18,10 +19,14 @@ object MediaStoreHelper {
     private val RELATIVE_PATH_VIBETUNE = "${Environment.DIRECTORY_MUSIC}/VibeTune"
 
     /**
-     * Guarda el track solicitado en la carpeta pública de Música clonando un contenedor
-     * de audio real desde tus assets para garantizar compatibilidad con reproductores.
+     * Guarda el track solicitado en la carpeta pública de Música.
+     * 
+     * @param context Contexto de la aplicación.
+     * @param title Título de la canción.
+     * @param artist Artista de la canción.
+     * @param sourceFile Archivo temporal que contiene el audio normalizado.
      */
-    fun saveMp3ToMusicFolder(context: Context, title: String, artist: String): Uri? {
+    fun saveMp3ToMusicFolder(context: Context, title: String, artist: String, sourceFile: File): Uri? {
         val resolver = context.contentResolver
         
         // Configurar los metadatos de indexación para el sistema de Android
@@ -47,11 +52,10 @@ object MediaStoreHelper {
         val fileUri = resolver.insert(collectionUri, audioDetails) ?: return null
 
         try {
-            // 🚨 SOLUCIÓN: Volcamos el flujo binario real de tu asset silent.mp3
-            // Esto asegura estructuras de decodificación válidas para el sistema operativo
+            // Volcamos el flujo binario desde el archivo fuente (ej. normalizado por FFmpeg)
             resolver.openOutputStream(fileUri)?.use { outputStream ->
-                context.assets.open("silent.mp3").use { inputStream ->
-                    inputStream.copyTo(outputStream) // Copia limpia byte por byte
+                FileInputStream(sourceFile).use { inputStream ->
+                    inputStream.copyTo(outputStream)
                 }
             }
 

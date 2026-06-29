@@ -4,13 +4,19 @@ import android.content.Context
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
 import androidx.work.workDataOf
+import com.arthenica.ffmpegkit.FFmpegKit
+import com.arthenica.ffmpegkit.ReturnCode
+import com.example.data.remote.SupabaseClient
 import com.example.utils.MediaStoreHelper
-import kotlinx.coroutines.delay
-import kotlin.math.abs
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import okhttp3.Request
+import java.io.File
+import java.io.FileOutputStream
 
 /**
  * Worker encargado de procesar la descarga y conversión de audio en segundo plano.
- * Garantiza resiliencia frente a desconexiones y falta de memoria en el sistema.
+ * Descarga el archivo desde el stream_url, normaliza el audio con FFmpeg y lo guarda en MediaStore.
  */
 class DownloadWorker(
     context: Context,
@@ -20,53 +26,67 @@ class DownloadWorker(
     private val notificationHelper = NotificationHelper(applicationContext)
 
     override suspend fun doWork(): Result {
-        // 1. Extraer los parámetros de entrada enviados por el disparador
         val videoId = inputData.getString("VIDEO_ID") ?: return Result.failure()
         val title = inputData.getString("TITLE") ?: "Canción VibeTune"
         val artist = inputData.getString("ARTIST") ?: "Artista Desconocido"
-        
-        // El índice del gradiente algorítmico heredado de tu limpiador
-        val albumArtIndex = inputData.getInt("ALBUM_ART_INDEX", 0) 
+        val streamUrl = inputData.getString("STREAM_URL") ?: return Result.failure()
 
         try {
-            // 2. Notificación Inicial: Registrar el inicio de la tarea en segundo plano
             notificationHelper.showProgressNotification(videoId, title, artist, 0)
 
-            // --- Conexión Cloud FOSS (Simulada / Preparada para Producción) ---
-            // Aquí es donde se conectará el stream HTTP hacia Cloudflare R2.
-            // Para el prototipo, replicamos tus pasos progresivos de seda:
-            val progressSteps = listOf(12, 28, 45, 61, 79, 93, 100)
+            // 1. Descargar el archivo original a un temporal
+            val tempFile = File(applicationContext.cacheDir, "temp_$videoId.mp3")
+            downloadFile(streamUrl, tempFile)
+            notificationHelper.showProgressNotification(videoId, title, artist, 50)
+
+            // 2. Normalizar el audio con FFmpeg
+            val normalizedFile = File(applicationContext.cacheDir, "normalized_$videoId.mp3")
+            val ffmpegCommand = "-i \"${tempFile.absolutePath}\" -filter:a \"loudnorm\" \"${normalizedFile.absolutePath}\" -y"
             
-            for (progress in progressSteps) {
-                if (isStopped) {
-                    return Result.failure()
+            val session = FFmpegKit.execute(ffmpegCommand)
+            if (ReturnCode.isSuccess(session.returnCode)) {
+                notificationHelper.showProgressNotification(videoId, title, artist, 90)
+
+                // 3. Guardar el archivo normalizado en el almacenamiento público
+                val savedUri = MediaStoreHelper.saveMp3ToMusicFolder(applicationContext, title, artist, normalizedFile)
+
+                // Limpieza de archivos temporales
+                tempFile.delete()
+                normalizedFile.delete()
+
+                return if (savedUri != null) {
+                    notificationHelper.showCompletedNotification(videoId, title, artist)
+                    Result.success(workDataOf("LOCAL_URI" to savedUri.toString()))
+                } else {
+                    Result.failure()
                 }
-                delay(400) // Tiempo de procesamiento realista en servidor asíncrono
-                
-                // Actualizar el progreso físico en la Rich Notification del sistema
-                notificationHelper.showProgressNotification(videoId, title, artist, progress)
-                
-                // Exponer el progreso al sistema WorkManager (útil si la app se vuelve a abrir)
-                setProgress(workDataOf("PROGRESS" to progress))
-            }
-
-            // 3. Materializar el archivo de audio físico en el almacenamiento público
-            val savedUri = MediaStoreHelper.saveMp3ToMusicFolder(applicationContext, title, artist)
-
-            return if (savedUri != null) {
-                // 4. Éxito: Reemplazar la barra de progreso por la notificación multimedia final
-                notificationHelper.showCompletedNotification(videoId, title, artist)
-                
-                // Devolvemos la URI local para que cualquier receptor consuma el archivo listo
-                Result.success(workDataOf("LOCAL_URI" to savedUri.toString()))
             } else {
-                Result.failure()
+                tempFile.delete()
+                normalizedFile.delete()
+                return Result.failure()
             }
 
         } catch (e: Exception) {
             e.printStackTrace()
-            // Si algo falla en la red, WorkManager aplicará automáticamente el Backoff Exponencial
             return Result.retry()
+        }
+    }
+
+    private suspend fun downloadFile(url: String, targetFile: File) = withContext(Dispatchers.IO) {
+        val request = Request.Builder().url(url).build()
+        // Reutilizamos el okHttpClient de SupabaseClient
+        // Pero SupabaseClient.okHttpClient es privado.
+        // Vamos a usar una instancia nueva o hacerlo público.
+        // Mirando SupabaseClient.kt, okHttpClient es privado.
+        
+        val client = okhttp3.OkHttpClient() 
+        client.newCall(request).execute().use { response ->
+            if (!response.isSuccessful) throw Exception("Error al descargar: $response")
+            response.body?.byteStream()?.use { inputStream ->
+                FileOutputStream(targetFile).use { outputStream ->
+                    inputStream.copyTo(outputStream)
+                }
+            }
         }
     }
 }
