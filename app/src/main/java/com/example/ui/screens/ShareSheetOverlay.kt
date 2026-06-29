@@ -33,7 +33,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.VibeTuneViewModel
-import com.example.VibeUiState
+import com.example.ui.screens.VibeUiState
 import com.example.ui.components.CapturingStateView
 import com.example.ui.components.CompletedStateView
 import com.example.ui.components.ConvertingStateView
@@ -115,7 +115,7 @@ fun ShareSheetOverlay(
                             albumArtIndex = state.albumArtIndex,
                             onDownloadStart = {
                                 viewModel.startDownloadAndConversion(
-                                    context, state.title, state.artist, state.albumArtIndex
+                                    context, state.title, state.artist, state.albumArtIndex, state.streamUrl
                                 )
                             },
                             onCancel = onDismiss
